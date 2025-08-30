@@ -1,0 +1,278 @@
+{
+  "name": "My workflow 4",
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.body.searchQuery }}",
+        "options": {
+          "systemMessage": "=You are an AI agent that manages information in a Google Sheet. Your job is to read incoming chat messages, review the current sheet data And answer the user query\nWhatever question the user asks always go to the Google Sheet to refer for the answer\n\n##Core Steps:\n\nRead Message: Identify user query or booking request.\n\nFetch Database: Use read_google_sheet to retrieve relevant data (company info, user details, services).\n\nCheck Availability: If asked, use get_google_calendar to list available Slots. Normalize any natural language date/time to ISO 8601.If the year is not provided, use the current year\n\nBook Slot: When user confirms, collect:\n\nName\n\nEmail Address\n\nDate & Time (formatted ISO 8601)\n Then use `create_google_calenda` to schedule the Slot.\n\nSend Confirmation: Compose message using read_google_sheet database for company details + user-provided details + Confirmation Message Template then send via send_email.\n\n\n## Confirmation Message Template\n\n#Subject:\nYour Appointment is Confirmed – [Company Name]\n\n#Body:\nDear [Full Name],\nYour appointment for [Service Type] has been successfully scheduled.\nAppointment Details:\n- Date: [Formatted Date]\n- Time: [Formatted Time]\n- Service: [Service Type]\n- Email: [User Email]\nCompany Details:\n- [Company Name]\n- [Company Address]\n- Contact: [Phone/Email]\n- Website: [URL, if available]\n\nWe look forward to serving you. If you have any questions, feel free to contact us.\n\nBest regards,\n[Company Name] Team\n\nTone: Professional, warm, concise. Avoid jargon.\n\n## Available Tools\n- `read_google_sheet`: Retrieves current data from the Google Sheet\n\n- get_google_calendar : Retrieves the availability if the user asks for\n\n- create_google_calendar : If the user asked to book the date and time create an event in the google_calendar\n\n-send_emai': use for sending conformation mail\n\n## Guidelines\n\nAlways read the database first before answering.\n\nIf information is missing, politely say: \"I couldn’t provide that information due to privacy reasons.\n\nNormalize all date/time inputs automatically before booking.\nAlways use “Slot” instead of “Event.”\n\nLimit responses to 3 lines.\n\nDo not ask irrelevant questions; pull all info from the database if available.\n\nFor email always use Confirmation Message Template\n\nKeep email sending and calendar event creation fully automated.\n\n##Response Format\n\nRead the current sheet data\n\nStay focused, efficient, and accurate in your updates.\n\nIf the user asks something and the data is not available on\nthe sheet, Tell the user that you couldn't provide the information because of the privacy reason.\n\nNever mention \"in the sheet\" to the user instead mention \"in the database\"\n\nKeep all the responses as concise as possible and not more than three lines or three sentences\n\nIf the user asks for date availability use the calendar tool to check the availability on those dates\n\nWhen the user asks for booking confirmation, ask for their name, email address, and appointment date and time. If the year is not provided, use the current year. Then schedule the Slot and include all provided details when creating it.\n\nIf you are booking or checking the availability never say ‘event’ always say Slot\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        80,
+        0
+      ],
+      "id": "256b5526-2dd4-4f50-a641-3d77e2c1e33a",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "19wOqxl94Ar76sicff2GRDS4agzSil8NI-1ZaeFPKeow",
+          "mode": "list",
+          "cachedResultName": "Know Your colleges Knowledgebase",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19wOqxl94Ar76sicff2GRDS4agzSil8NI-1ZaeFPKeow/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19wOqxl94Ar76sicff2GRDS4agzSil8NI-1ZaeFPKeow/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        32,
+        272
+      ],
+      "id": "ffa4e3b4-18ca-46b7-a737-a54af7c9f549",
+      "name": "Get row(s) in sheet in Google Sheets",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "HpHTJSXTW37uwHZZ",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "informationagent",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -144,
+        0
+      ],
+      "id": "22982027-61d8-4f71-82bf-560e47c21fbe",
+      "name": "Webhook",
+      "webhookId": "fb3fc646-a9a2-494c-823e-e82e8b253861"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        432,
+        0
+      ],
+      "id": "d06ff8eb-f322-4a3a-afd4-f6f341809b63",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -144,
+        272
+      ],
+      "id": "e818b903-70b5-4d8a-ab09-88dd59718657",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "5nb03RAWZDM4KZ3P",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "calendar": {
+          "__rl": true,
+          "value": "ashadmuneer786@gmail.com",
+          "mode": "list",
+          "cachedResultName": "ashadmuneer786@gmail.com"
+        },
+        "start": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Start', ``, 'string') }}",
+        "end": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('End', `KYC appointment`, 'string') }}",
+        "additionalFields": {
+          "attendees": [],
+          "description": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Description', ``, 'string') }}"
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        384,
+        288
+      ],
+      "id": "c3a560e6-76fd-4849-94d8-9fc1b04613f9",
+      "name": "Create an event in Google Calendar",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "T87AG84PLy88pQWZ",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('To', ``, 'string') }}",
+        "subject": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Subject', ``, 'string') }}",
+        "emailType": "text",
+        "message": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Message', ``, 'string') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmailTool",
+      "typeVersion": 2.1,
+      "position": [
+        560,
+        288
+      ],
+      "id": "f5b2a92b-fbea-4382-b481-922f671cb7cd",
+      "name": "Send a message in Gmail",
+      "webhookId": "14e8582b-0b06-4087-98cf-31fe7c6ed82a",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "i4OoyNRAsbZ9GMJW",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "calendar",
+        "calendar": {
+          "__rl": true,
+          "value": "ashadmuneer786@gmail.com",
+          "mode": "list",
+          "cachedResultName": "ashadmuneer786@gmail.com"
+        },
+        "timeMin": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Start_Time', ``, 'string') }}",
+        "timeMax": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('End_Time', ``, 'string') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        224,
+        288
+      ],
+      "id": "01f7de98-5738-4bf6-adb9-580fd1221dd8",
+      "name": "Get availability in a calendar in Google Calendar",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "T87AG84PLy88pQWZ",
+          "name": "Google Calendar account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Get row(s) in sheet in Google Sheets": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create an event in Google Calendar": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message in Gmail": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get availability in a calendar in Google Calendar": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "2a114825-7fec-4502-bf72-5570120b5229",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "d64910ce302108debdfbc8caff55e2b7851a7c49427bca6fb5b6373d67b734b9"
+  },
+  "id": "vaEXKHatLFwYnJ4a",
+  "tags": []
+}
